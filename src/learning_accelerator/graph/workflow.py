@@ -8,6 +8,11 @@ from langgraph.graph import END, START, StateGraph
 
 from learning_accelerator.agents.curriculum_planner import curriculum_planner_node
 from learning_accelerator.agents.explainer import explainer_node
+from learning_accelerator.agents.progress_coach import (
+    progress_coach_node,
+    route_after_coach,
+)
+from learning_accelerator.agents.quiz_generator import quiz_generator_node
 from learning_accelerator.graph.state import AgentState
 
 DEFAULT_DB_PATH = os.environ.get("CHECKPOINT_DB_PATH", ".data/checkpoints.sqlite")
@@ -28,9 +33,18 @@ def build_graph(db_path: str = DEFAULT_DB_PATH):
     builder = StateGraph(AgentState)
     builder.add_node("curriculum_planner", curriculum_planner_node)
     builder.add_node("explainer", explainer_node)
+    builder.add_node("quiz_generator", quiz_generator_node)
+    builder.add_node("progress_coach", progress_coach_node)
+
     builder.add_edge(START, "curriculum_planner")
     builder.add_edge("curriculum_planner", "explainer")
-    builder.add_edge("explainer", END)
+    builder.add_edge("explainer", "quiz_generator")
+    builder.add_edge("quiz_generator", "progress_coach")
+    builder.add_conditional_edges(
+        "progress_coach",
+        route_after_coach,
+        {"explainer": "explainer", "end": END},
+    )
 
     return builder.compile(checkpointer=checkpointer)
 
