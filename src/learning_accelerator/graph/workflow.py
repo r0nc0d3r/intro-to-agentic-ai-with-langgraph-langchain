@@ -7,6 +7,7 @@ from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.graph import END, START, StateGraph
 
 from learning_accelerator.agents.curriculum_planner import curriculum_planner_node
+from learning_accelerator.agents.explainer import explainer_node
 from learning_accelerator.graph.state import AgentState
 
 DEFAULT_DB_PATH = os.environ.get("CHECKPOINT_DB_PATH", ".data/checkpoints.sqlite")
@@ -26,8 +27,10 @@ def build_graph(db_path: str = DEFAULT_DB_PATH):
 
     builder = StateGraph(AgentState)
     builder.add_node("curriculum_planner", curriculum_planner_node)
+    builder.add_node("explainer", explainer_node)
     builder.add_edge(START, "curriculum_planner")
-    builder.add_edge("curriculum_planner", END)
+    builder.add_edge("curriculum_planner", "explainer")
+    builder.add_edge("explainer", END)
 
     return builder.compile(checkpointer=checkpointer)
 
