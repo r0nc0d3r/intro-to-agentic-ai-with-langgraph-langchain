@@ -1,12 +1,14 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Annotated, Optional
 
 from langchain_core.messages import BaseMessage
 from langgraph.graph.message import add_messages
 from pydantic import BaseModel, Field
 from typing_extensions import TypedDict
+
+PASS_THRESHOLD = 0.5
 
 
 class Topic(BaseModel):
@@ -29,6 +31,7 @@ class QuizResult:
     topic: str
     score: float
     passed: bool
+    weak_areas: list[str] = field(default_factory=list)
 
 
 class AgentState(TypedDict):
@@ -59,3 +62,18 @@ def initial_state(
         study_materials_path=study_materials_path,
         error=None,
     )
+
+
+def get_current_topic(state: AgentState) -> Topic:
+    """Return the topic the graph is currently working through.
+
+    Only valid while session_is_complete(state) is False.
+    """
+    return state["roadmap"].topics[state["current_topic_index"]]
+
+
+def session_is_complete(state: AgentState) -> bool:
+    roadmap = state.get("roadmap")
+    if roadmap is None:
+        return True
+    return state.get("current_topic_index", 0) >= len(roadmap.topics)

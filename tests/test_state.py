@@ -1,7 +1,13 @@
 import pytest
 from pydantic import ValidationError
 
-from learning_accelerator.graph.state import StudyRoadmap, Topic, initial_state
+from learning_accelerator.graph.state import (
+    StudyRoadmap,
+    Topic,
+    get_current_topic,
+    initial_state,
+    session_is_complete,
+)
 
 
 def test_initial_state_defaults():
@@ -42,3 +48,47 @@ def test_study_roadmap_defaults_weekly_hours():
         topics=[Topic(title="Intro", description="Basics", estimated_minutes=30)],
     )
     assert roadmap.weekly_hours == 5
+
+
+def test_get_current_topic_returns_indexed_topic():
+    roadmap = StudyRoadmap(
+        goal="g",
+        total_weeks=1,
+        topics=[
+            Topic(title="A", description="d", estimated_minutes=10),
+            Topic(title="B", description="d", estimated_minutes=10),
+        ],
+    )
+    state = initial_state(goal="g", session_id="s")
+    state["roadmap"] = roadmap
+    state["current_topic_index"] = 1
+
+    assert get_current_topic(state).title == "B"
+
+
+def test_session_is_complete_true_when_no_roadmap():
+    state = initial_state(goal="g", session_id="s")
+    assert session_is_complete(state) is True
+
+
+def test_session_is_complete_false_when_topics_remain():
+    roadmap = StudyRoadmap(
+        goal="g", total_weeks=1,
+        topics=[Topic(title="A", description="d", estimated_minutes=10)],
+    )
+    state = initial_state(goal="g", session_id="s")
+    state["roadmap"] = roadmap
+
+    assert session_is_complete(state) is False
+
+
+def test_session_is_complete_true_when_index_exceeds_topics():
+    roadmap = StudyRoadmap(
+        goal="g", total_weeks=1,
+        topics=[Topic(title="A", description="d", estimated_minutes=10)],
+    )
+    state = initial_state(goal="g", session_id="s")
+    state["roadmap"] = roadmap
+    state["current_topic_index"] = 1
+
+    assert session_is_complete(state) is True
