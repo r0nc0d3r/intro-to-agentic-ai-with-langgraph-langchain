@@ -4,7 +4,7 @@ from langchain_core.messages import BaseMessage, SystemMessage, ToolMessage
 from langchain_core.tools import tool
 
 from learning_accelerator.config import get_chat_model
-from learning_accelerator.graph.state import AgentState
+from learning_accelerator.graph.state import AgentState, get_current_topic
 from learning_accelerator.mcp_servers.filesystem_server import (
     list_study_files,
     read_study_file,
@@ -70,7 +70,7 @@ def _execute_tool_call(tool_call: dict) -> str:
 def explainer_node(state: AgentState) -> dict:
     llm = get_chat_model(temperature=0.3).bind_tools(EXPLAINER_TOOLS)
 
-    topic = state["roadmap"].topics[state["current_topic_index"]]
+    topic = get_current_topic(state)
     messages: list[BaseMessage] = [
         SystemMessage(content=SYSTEM_PROMPT),
         SystemMessage(
