@@ -45,6 +45,16 @@ has no `administration` scope either — that setting can only be applied
 by a human in the GitHub UI (or via API using a manually-provisioned PAT
 with `repo` scope). Don't try to talk around this restriction.
 
+## Contribution workflow
+
+- **CONTRIBUTING.md** — standard GitHub-recognized filename (not
+  CONTRIBUTE/CONTRIBUTION); GitHub links to it automatically from new
+  issues/PRs. Covers the PR-only workflow and commit message style
+  (imperative summary line, ~50–72 chars, blank line + "why" body when
+  non-obvious).
+- **.github/pull_request_template.md** — minimal Summary + Test plan
+  sections, auto-populated into new PRs on GitHub.
+
 ## Plugins / skills
 
 The `superpowers@superpowers-marketplace` plugin (marketplace source:
