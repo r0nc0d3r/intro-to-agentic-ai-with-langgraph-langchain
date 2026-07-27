@@ -17,11 +17,41 @@ multi-step graphs with tool use and memory.
 
 ## Getting Started
 
+Clone the repository first:
+
 ```bash
-# Clone the repository
 git clone https://github.com/r0nc0d3r/intro-to-agentic-ai-with-langgraph-langchain.git
 cd intro-to-agentic-ai-with-langgraph-langchain
+```
 
+### Option A: uv (recommended)
+
+[uv](https://docs.astral.sh/uv/) is a fast Python package/project manager
+that replaces `python -m venv`, `pip`, and `pip-tools` with a single tool.
+
+```bash
+# Install uv (skip if already installed)
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Create the virtual environment (equivalent to python -m venv .venv)
+uv venv
+
+# Install dependencies from pyproject.toml/requirements.txt (equivalent to pip install -r requirements.txt)
+uv sync
+
+# Add a new dependency (equivalent to pip install <package> + updating requirements)
+uv add <package>
+
+# Run a script inside the project's environment without manually activating it (equivalent to source .venv/bin/activate && python script.py)
+uv run python script.py
+
+# Run a one-off CLI tool in an ephemeral environment (equivalent to pipx run <tool>)
+uvx <tool>
+```
+
+### Option B: standard venv + pip
+
+```bash
 # Create and activate a virtual environment
 python -m venv .venv
 source .venv/bin/activate
