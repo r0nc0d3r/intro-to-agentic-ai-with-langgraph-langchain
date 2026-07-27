@@ -20,6 +20,11 @@ ENV/
 .env.*
 !.env.example
 
+# LangGraph SQLite checkpoints
+.data/
+*.sqlite
+*.sqlite3
+
 # Jupyter
 .ipynb_checkpoints/
 

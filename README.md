@@ -12,8 +12,9 @@ multi-step graphs with tool use and memory.
 
 ## Prerequisites
 
-- Python 3.10+
-- An API key for at least one supported LLM provider (e.g. OpenAI, Anthropic)
+- Python 3.11+
+- Either a local [Ollama](https://ollama.com/) install (default, no API key
+  needed) or an API key for a hosted provider (Anthropic, OpenAI)
 
 ## Getting Started
 

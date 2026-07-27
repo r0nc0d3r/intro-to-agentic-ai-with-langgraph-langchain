@@ -1,0 +1,28 @@
+[project]
+name = "learning-accelerator"
+version = "0.1.0"
+description = "Learning Accelerator multi-agent system (LangGraph course)"
+readme = "README.md"
+authors = [
+    { name = "r0nc0d3r", email = "109854377+r0nc0d3r@users.noreply.github.com" }
+]
+requires-python = ">=3.11"
+dependencies = [
+    "langchain-anthropic>=1.5.2",
+    "langchain-core>=1.5.1",
+    "langchain-ollama>=1.1.0",
+    "langchain-openai>=1.4.1",
+    "langgraph>=1.2.9",
+    "langgraph-checkpoint-sqlite>=3.1.0",
+    "pydantic>=2.13.4",
+    "python-dotenv>=1.2.2",
+]
+
+[build-system]
+requires = ["uv_build>=0.11.7,<0.12.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]
