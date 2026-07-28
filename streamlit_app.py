@@ -86,8 +86,16 @@ def extract_explanation(messages: list) -> str:
     return ""
 
 
-def extract_coaching(messages: list) -> str:
-    for msg in reversed(messages):
+def first_ai_message(messages: list) -> str:
+    """Get the first AIMessage with content in a slice of newly-appended
+    messages. Used for the coaching message: progress_coach always runs
+    before explainer in the single invoke that follows a quiz, and both
+    append a plain (no-tool-calls) AIMessage — taking the *first* one
+    (progress_coach's) instead of the *last* (which would collide with
+    extract_explanation and always resolve to explainer's message
+    instead) is what actually distinguishes them.
+    """
+    for msg in messages:
         if isinstance(msg, AIMessage) and msg.content:
             return msg.content
     return ""
@@ -178,11 +186,19 @@ def advance_after_quiz(quiz_result: QuizResult) -> None:
         as_node="quiz_generator",
     )
 
+    prior_message_count = len(ui_graph.get_state(config).values.get("messages", []))
+
     with st.spinner("Getting coaching feedback..."):
         result = ui_graph.invoke(None, config=config)
 
+    # This one invoke runs progress_coach (always) and then explainer (if
+    # there's a next topic) with no interrupt boundary between them, so
+    # both nodes' plain AIMessages land in the same result["messages"].
+    # Scope to only what THIS invoke appended, so a later topic's
+    # explanation can't bleed into the coaching message extraction below.
     messages = result.get("messages", [])
-    st.session_state.coaching_message = extract_coaching(messages)
+    new_messages = messages[prior_message_count:]
+    st.session_state.coaching_message = first_ai_message(new_messages)
     st.session_state.quiz_results = result.get("quiz_results", existing + [quiz_result])
     st.session_state.weak_areas = result.get("weak_areas", all_weak)
     new_idx = result.get("current_topic_index", st.session_state.current_topic_index + 1)
@@ -196,7 +212,7 @@ def advance_after_quiz(quiz_result: QuizResult) -> None:
         go_to("COMPLETE")
         return
 
-    st.session_state.explanation = extract_explanation(messages)
+    st.session_state.explanation = extract_explanation(new_messages)
     topic = roadmap.topics[new_idx]
     st.session_state.topic_title = topic.title
     st.session_state.topic_description = topic.description
