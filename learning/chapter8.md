@@ -79,6 +79,16 @@ entirely. Pinning to the last pre-break release keeps this chapter's code
 working; a future upgrade would need real migration work, not just a
 version bump.
 
+**Q: Where does `try_study_buddy_assistance`'s `explanation` argument come
+from in `progress_coach_node` — and why not just pass an empty string?**
+A: `progress_coach_node` walks `state["messages"]` in reverse and takes the
+last `AIMessage` with content and no `tool_calls` as the explanation, the
+same pattern `quiz_generator_node` already uses to recover the Explainer's
+output. The plan's alternative — passing `""` — was considered but rejected:
+an empty explanation would give the Study Buddy nothing concrete to riff on,
+producing a generic "fresh analogy" untethered to what the student actually
+read, instead of supplementary help that responds to the real content.
+
 **Q: What real result did the end-to-end demo produce?**
 A: Both services came up (Agent Cards discoverable at ports 9001/9002),
 the Quiz Service returned `"questions_ready"` with 3 real generated

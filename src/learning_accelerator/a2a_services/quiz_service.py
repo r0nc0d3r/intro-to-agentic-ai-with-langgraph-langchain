@@ -155,4 +155,4 @@ if __name__ == "__main__":
     print("[Quiz A2A Service] Starting on http://localhost:9001")
     print("[Quiz A2A Service] Agent Card: http://localhost:9001/.well-known/agent-card.json")
     print("[Quiz A2A Service] Press Ctrl+C to stop\n")
-    uvicorn.run(create_quiz_server(), host="0.0.0.0", port=9001, log_level="warning")
+    uvicorn.run(create_quiz_server(), host="127.0.0.1", port=9001, log_level="warning")

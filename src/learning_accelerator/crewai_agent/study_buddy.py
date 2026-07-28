@@ -29,9 +29,12 @@ from a2a.server.tasks import InMemoryTaskStore
 from a2a.types import AgentCapabilities, AgentCard, AgentSkill, Message, TextPart
 from crewai import LLM, Agent, Crew, Process, Task
 from crewai.tools import BaseTool
+from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 
-MODEL_NAME = os.getenv("OLLAMA_MODEL", "gemma4:12b")
+load_dotenv()
+
+MODEL_NAME = os.getenv("OLLAMA_MODEL", "llama3.1")
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 
 
@@ -232,4 +235,4 @@ if __name__ == "__main__":
     print("[CrewAI Study Buddy] Agent Card: http://localhost:9002/.well-known/agent-card.json")
     print("[CrewAI Study Buddy] This is a CrewAI agent served via A2A")
     print("[CrewAI Study Buddy] Press Ctrl+C to stop\n")
-    uvicorn.run(create_study_buddy_server(), host="0.0.0.0", port=9002, log_level="warning")
+    uvicorn.run(create_study_buddy_server(), host="127.0.0.1", port=9002, log_level="warning")

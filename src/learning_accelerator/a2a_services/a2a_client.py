@@ -25,7 +25,7 @@ def discover_agent(base_url: str) -> dict:
 def send_task(
     base_url: str,
     message_text: str,
-    task_id: str | None = None,
+    message_id: str | None = None,
     timeout: float = DEFAULT_TIMEOUT,
 ) -> dict:
     payload = {
@@ -35,7 +35,7 @@ def send_task(
         "params": {
             "message": {
                 "role": "user",
-                "messageId": task_id or str(uuid.uuid4()),
+                "messageId": message_id or str(uuid.uuid4()),
                 "kind": "message",
                 "parts": [{"kind": "text", "text": message_text}],
             },
@@ -84,9 +84,9 @@ def send_task(
         return result
 
     except httpx.TimeoutException:
-        return {"error": f"Quiz service timed out after {timeout}s"}
+        return {"error": f"A2A service timed out after {timeout}s"}
     except httpx.ConnectError:
-        return {"error": f"Cannot connect to quiz service at {url}"}
+        return {"error": f"Cannot connect to A2A service at {url}"}
     except Exception as e:
         return {"error": f"A2A task failed: {type(e).__name__}: {e}"}
 
