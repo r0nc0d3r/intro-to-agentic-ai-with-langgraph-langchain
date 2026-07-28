@@ -27,11 +27,22 @@ class StudyRoadmap(BaseModel):
 
 
 @dataclass
+class GradedAnswer:
+    question: str
+    expected_answer: str
+    user_answer: str
+    correct: bool
+    feedback: str
+    score: float
+
+
+@dataclass
 class QuizResult:
     topic: str
     score: float
     passed: bool
     weak_areas: list[str] = field(default_factory=list)
+    questions: list[GradedAnswer] = field(default_factory=list)
 
 
 class AgentState(TypedDict):

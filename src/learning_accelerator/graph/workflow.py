@@ -22,7 +22,10 @@ from learning_accelerator.graph.state import AgentState
 DEFAULT_DB_PATH = os.environ.get("CHECKPOINT_DB_PATH", ".data/checkpoints.sqlite")
 
 
-def build_graph(db_path: str = DEFAULT_DB_PATH):
+def build_graph(
+    db_path: str = DEFAULT_DB_PATH,
+    interrupt_before: list[str] | None = None,
+):
     db_dir = os.path.dirname(db_path)
     if db_dir:
         os.makedirs(db_dir, exist_ok=True)
@@ -56,7 +59,10 @@ def build_graph(db_path: str = DEFAULT_DB_PATH):
         {"explainer": "explainer", "end": END},
     )
 
-    return builder.compile(checkpointer=checkpointer)
+    return builder.compile(
+        checkpointer=checkpointer,
+        interrupt_before=interrupt_before or [],
+    )
 
 
 graph = build_graph()
