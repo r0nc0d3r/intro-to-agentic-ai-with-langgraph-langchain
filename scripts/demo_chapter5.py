@@ -1,5 +1,11 @@
 """Manual run: demonstrate interrupt / simulated-restart / resume.
 
+Like chapter 4's demo, this monkeypatches quiz_generator._default_answer_source
+with a canned response so the run completes without a real terminal attached —
+there's no way to feed this session's tooling real interactive stdin. For a
+genuine interactive quiz, call run_quiz() directly from a real terminal instead
+(its default answer_source is real input()).
+
 Requires either a running Ollama instance (default, see .env.example) or
 ANTHROPIC_API_KEY / OPENAI_API_KEY with LLM_PROVIDER set accordingly.
 """

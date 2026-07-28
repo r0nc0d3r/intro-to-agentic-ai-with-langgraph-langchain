@@ -11,6 +11,13 @@ A: `graph.invoke(Command(resume=value), config)` with the same
 `thread_id` in `config` — `value` becomes what `interrupt()` returns
 inside the node on the next run.
 
+**Q: What actually happens inside the node on resume — does execution
+continue from the `interrupt()` line, or does something else happen?**
+A: The node's function body re-executes from the top. `interrupt()`'s
+call re-fires, but this time (since a resume value is recorded) it
+returns that value instead of raising — so any code before the
+`interrupt()` call in the node runs again too.
+
 **Q: Given that the node re-executes from the top on resume, why doesn't
 `human_approval_node` need to explicitly return every field like the
 source article's version does?**
@@ -22,6 +29,16 @@ merging (proven since chapter 2) applies here exactly the same way.
 **Q: What does `route_after_approval` do?**
 A: Pure logic, no LLM call: `"explainer"` if `state["approved"]` is
 true, else `"curriculum_planner"` (regenerate the roadmap).
+
+**Q: What happens if a human rejects the roadmap — does the regenerated
+one actually incorporate their feedback?**
+A: Not currently — rejection routes back to `curriculum_planner`, which
+re-runs with the identical goal and prompt, so the new roadmap is often
+nearly the same as the one just rejected. There's no mechanism yet to
+feed "why it was rejected" back into regeneration. Repeated rejection
+will eventually hit LangGraph's default recursion limit
+(`GraphRecursionError`) rather than converge. This matches the source
+article's behavior — it's a known limitation, not a hidden bug.
 
 **Q: What did the chapter 5 demo prove that a normal interrupt/resume
 test wouldn't?**
