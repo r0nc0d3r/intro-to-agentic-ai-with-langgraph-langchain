@@ -17,15 +17,19 @@ class LearningAcceleratorJudge(DeepEvalBaseLLM):
     def load_model(self):
         return get_chat_model(temperature=0.0)
 
-    def generate(self, prompt: str) -> str:
-        return self.load_model().invoke(prompt).content
+    def generate(self, prompt: str, schema=None) -> str:
+        model = self.model
+        if schema is not None:
+            return model.with_structured_output(schema).invoke(prompt)
+        return model.invoke(prompt).content
 
-    async def a_generate(self, prompt: str) -> str:
-        return self.generate(prompt)
+    async def a_generate(self, prompt: str, schema=None) -> str:
+        return self.generate(prompt, schema=schema)
 
     def get_model_name(self) -> str:
-        provider = os.environ.get("LLM_PROVIDER", "ollama")
-        return f"learning-accelerator-judge/{provider}"
+        provider = os.environ.get("LLM_PROVIDER", "ollama").lower()
+        model_name = os.environ.get("OLLAMA_MODEL", "unknown")
+        return f"learning-accelerator-judge/{provider}/{model_name}"
 
 
 def get_judge_model() -> LearningAcceleratorJudge:
