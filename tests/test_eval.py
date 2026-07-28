@@ -70,6 +70,12 @@ class TestExplainerQuality:
         print(f"[TestExplainerQuality] Explanation length: {len(self.explanation)} chars")
 
     def test_explanation_is_faithful_to_notes(self):
+        # Known flaky against gemma4:12b as judge: 3/3 observed live runs
+        # failed — once from a malformed Explainer tool-call argument, twice
+        # from FaithfulnessMetric's internal _a_generate_claims sub-call
+        # returning empty/unparsable JSON. Investigated in chapter 7 (see
+        # learning/chapter7.md); not a test-wording or threshold problem —
+        # a real local-model reliability limit for this specific metric.
         from deepeval.metrics import FaithfulnessMetric
         from deepeval.test_case import LLMTestCase
 
