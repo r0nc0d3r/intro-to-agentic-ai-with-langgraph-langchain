@@ -70,12 +70,20 @@ class TestExplainerQuality:
         print(f"[TestExplainerQuality] Explanation length: {len(self.explanation)} chars")
 
     def test_explanation_is_faithful_to_notes(self):
-        # Known flaky against gemma4:12b as judge: 3/3 observed live runs
-        # failed — once from a malformed Explainer tool-call argument, twice
-        # from FaithfulnessMetric's internal _a_generate_claims sub-call
-        # returning empty/unparsable JSON. Investigated in chapter 7 (see
-        # learning/chapter7.md); not a test-wording or threshold problem —
-        # a real local-model reliability limit for this specific metric.
+        # Previously flaky against gemma4:12b as judge: 3/3 observed live
+        # runs failed — once from a malformed Explainer tool-call argument,
+        # twice from FaithfulnessMetric's internal _a_generate_claims
+        # sub-call returning empty/unparsable JSON. Root cause turned out to
+        # be our own LearningAcceleratorJudge wrapper (judge_model.py):
+        # DeepEvalBaseLLM.a_generate_with_schema() calls
+        # a_generate(*args, schema=schema, **kwargs), catches the TypeError
+        # our old signature raised (it didn't accept `schema`), and silently
+        # fell back to unstructured generation — so FaithfulnessMetric's
+        # structured claim-extraction sub-call never got real schema
+        # enforcement. After adding `schema` support to generate()/
+        # a_generate() (using with_structured_output(), matching the rest
+        # of this codebase), a live re-run against gemma4:12b passed with a
+        # perfect 1.000 score. See learning/chapter7.md.
         from deepeval.metrics import FaithfulnessMetric
         from deepeval.test_case import LLMTestCase
 
@@ -93,12 +101,13 @@ class TestExplainerQuality:
         )
         metric.measure(test_case)
 
-        print(f"\n[Faithfulness] Score: {metric.score:.3f} (threshold: {self.FAITHFULNESS_THRESHOLD})")
+        score_display = f"{metric.score:.3f}" if metric.score is not None else "None"
+        print(f"\n[Faithfulness] Score: {score_display} (threshold: {self.FAITHFULNESS_THRESHOLD})")
         if metric.reason:
             print(f"[Faithfulness] Reason: {metric.reason}")
 
-        assert metric.score >= self.FAITHFULNESS_THRESHOLD, (
-            f"Faithfulness score {metric.score:.3f} below threshold {self.FAITHFULNESS_THRESHOLD}.\n"
+        assert metric.score is not None and metric.score >= self.FAITHFULNESS_THRESHOLD, (
+            f"Faithfulness score {score_display} below threshold {self.FAITHFULNESS_THRESHOLD}.\n"
             f"Reason: {metric.reason}"
         )
 
@@ -119,10 +128,11 @@ class TestExplainerQuality:
         )
         metric.measure(test_case)
 
-        print(f"\n[Relevancy] Score: {metric.score:.3f} (threshold: {self.RELEVANCY_THRESHOLD})")
+        score_display = f"{metric.score:.3f}" if metric.score is not None else "None"
+        print(f"\n[Relevancy] Score: {score_display} (threshold: {self.RELEVANCY_THRESHOLD})")
 
-        assert metric.score >= self.RELEVANCY_THRESHOLD, (
-            f"Relevancy score {metric.score:.3f} below threshold {self.RELEVANCY_THRESHOLD}."
+        assert metric.score is not None and metric.score >= self.RELEVANCY_THRESHOLD, (
+            f"Relevancy score {score_display} below threshold {self.RELEVANCY_THRESHOLD}."
         )
 
     def test_explanation_has_minimum_length(self):
@@ -185,12 +195,13 @@ class TestQuizGeneratorQuality:
         )
         metric.measure(test_case)
 
-        print(f"\n[QuestionQuality] Score: {metric.score:.3f} (threshold: {self.QUESTION_QUALITY_THRESHOLD})")
+        score_display = f"{metric.score:.3f}" if metric.score is not None else "None"
+        print(f"\n[QuestionQuality] Score: {score_display} (threshold: {self.QUESTION_QUALITY_THRESHOLD})")
         if metric.reason:
             print(f"[QuestionQuality] Reason: {metric.reason}")
 
-        assert metric.score >= self.QUESTION_QUALITY_THRESHOLD, (
-            f"Question quality score {metric.score:.3f} below threshold.\n"
+        assert metric.score is not None and metric.score >= self.QUESTION_QUALITY_THRESHOLD, (
+            f"Question quality score {score_display} below threshold.\n"
             f"Questions generated:\n{questions_text}"
         )
 
@@ -290,8 +301,8 @@ class TestGradingQuality:
         from learning_accelerator.agents.quiz_generator import grade_answer
 
         result = grade_answer(
-            "What is a closure?",
-            "A nested function capturing outer variables.",
+            "What is a LangGraph node?",
+            "A plain function that reads the current state and returns a partial update.",
             "Some student answer",
         )
         assert isinstance(result.score, float)
@@ -338,10 +349,11 @@ class TestProgressCoachQuality:
         )
         metric.measure(test_case)
 
-        print(f"\n[CoachingQuality] Score: {metric.score:.3f} (threshold: {self.COACHING_QUALITY_THRESHOLD})")
+        score_display = f"{metric.score:.3f}" if metric.score is not None else "None"
+        print(f"\n[CoachingQuality] Score: {score_display} (threshold: {self.COACHING_QUALITY_THRESHOLD})")
 
-        assert metric.score >= self.COACHING_QUALITY_THRESHOLD, (
-            f"Coaching quality {metric.score:.3f} below threshold.\nMessage:\n{coaching_text}"
+        assert metric.score is not None and metric.score >= self.COACHING_QUALITY_THRESHOLD, (
+            f"Coaching quality {score_display} below threshold.\nMessage:\n{coaching_text}"
         )
 
     def test_coaching_returns_required_fields(self):

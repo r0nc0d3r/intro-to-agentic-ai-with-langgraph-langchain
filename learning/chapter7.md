@@ -30,39 +30,83 @@ opts in explicitly.
 A: 11 of 12 tests passed, several with perfect 1.000 scores well above
 the conservative 0.6 threshold. One test —
 `test_explanation_is_faithful_to_notes` — failed 3 times out of 3
-independent attempts, with two distinct root causes: once the Explainer
-agent itself sent a malformed tool-call argument (`{'1': ...}` instead of
+independent attempts, with two apparent causes: once the Explainer agent
+itself sent a malformed tool-call argument (`{'1': ...}` instead of
 `{'session_id': ...}`), and twice the judge model's own internal
 `FaithfulnessMetric._a_generate_claims` sub-call returned empty/unparsable
-JSON that DeepEval couldn't recover from.
+JSON that DeepEval couldn't recover from. At the time, the second cause
+was attributed to a `gemma4:12b` reliability limit.
+
+**Q: Was that conclusion actually right?**
+A: No — a final whole-branch review caught a real bug in our own code
+that made the "local-model limitation" story incomplete. Our
+`LearningAcceleratorJudge` wrapper (`judge_model.py`) defined
+`generate(self, prompt: str)` / `a_generate(self, prompt: str)` with no
+`schema` parameter. DeepEval's `DeepEvalBaseLLM.a_generate_with_schema()`
+always tries `self.a_generate(*args, schema=schema, **kwargs)` first —
+and when that raises `TypeError` (because our signature didn't accept
+`schema`), it silently catches it and falls back to unstructured
+`a_generate(*args, **kwargs)`. So every structured-output sub-call
+DeepEval made through our judge — including `FaithfulnessMetric`'s
+claim-extraction step — was silently downgraded to free-text generation
+with no schema enforcement at all, even though the rest of this app
+(chapters 2, 4) uses `with_structured_output()` everywhere. That is a far
+more likely explanation for "empty/unparsable JSON" than the model simply
+being unreliable.
+
+**Q: What was the fix, and did it actually resolve the failure?**
+A: Added `schema=None` to both `generate()` and `a_generate()`; when a
+schema is passed, route through `model.with_structured_output(schema).invoke(prompt)`
+instead of the plain `.invoke(prompt).content` path — matching the
+pattern already used elsewhere in this codebase. Also switched to reusing
+`self.model` (already built once in `DeepEvalBaseLLM.__init__`) instead of
+calling `load_model()` fresh on every `generate()` call. After this fix, a
+live re-run of `test_explanation_is_faithful_to_notes` against
+`gemma4:12b` **passed, with a perfect 1.000 Faithfulness score** — strong
+evidence the schema-dropping bug, not an inherent `gemma4:12b` limitation,
+was the real root cause of at least the "unparsable JSON" failures.
 
 **Q: Was the failing test's threshold lowered, or its wording changed, to
 make it pass?**
-A: No — deliberately. The investigation traced both failure modes to
-concrete causes (a tool-call bug and an empty LLM completion), neither of
-which a threshold or wording change would fix. The test is left failing
-and documented in-code as a known limitation, not quietly patched around.
+A: No — neither the original investigation nor the eventual fix touched
+the threshold or test wording. The first pass correctly ruled out
+threshold/wording as the fix, but attributed the residual failures to the
+wrong root cause; the follow-up review found and fixed the actual bug in
+our own judge wrapper, and that's what turned the failures into a pass.
 
-**Q: What does this failing test actually teach about using a local 12B
+**Q: What does this whole episode actually teach about using a local 12B
 model for LLM-as-judge evaluation?**
-A: `FaithfulnessMetric` is DeepEval's most LLM-call-heavy metric — it
-makes at least two separate structured-output sub-calls (truth
-extraction, then claim extraction) to the judge. `AnswerRelevancyMetric`
-and the `GEval` metrics call the same judge model but with a single,
-simpler one-shot prompt, and passed cleanly. The lesson: a local model
-that's fine for simple one-shot judging can still fail on a metric that
-chains multiple structured-output calls together — more LLM calls in a
-metric's internal pipeline means more chances for one of them to return
-malformed output.
+A: Two lessons, and it matters which one gets the credit. First, on
+DeepEval's internals specifically: reading the installed
+`deepeval==4.1.4` source shows every metric used here is multi-call, not
+just `FaithfulnessMetric` — `FaithfulnessMetric` chains 4 sub-calls
+(`_a_generate_truths`, `_a_generate_claims`, `_a_generate_verdicts`,
+`_a_generate_reason`); `AnswerRelevancyMetric` chains 3
+(`_a_generate_statements`, `_a_generate_verdicts`, `_a_generate_reason`);
+`GEval` makes at least 2 when used with `criteria=` (as our tests do)
+— steps generation, then evaluation. `FaithfulnessMetric` chains the
+*most* sub-calls and feeds the *largest* prompt (the full retrieval
+context) into that pipeline, giving it the widest surface for a malformed
+completion — a real factor. But the second, bigger lesson is a humbling
+one: don't blame the model before auditing your own integration code.
+The judge wrapper silently dropping DeepEval's `schema` parameter meant
+none of our structured-output sub-calls were ever actually schema-enforced
+— a bug entirely in our code, invisible until someone read
+`DeepEvalBaseLLM`'s source and noticed the `except TypeError: pass`
+fallback. "The local model is unreliable" was a much more comfortable
+conclusion than "our wrapper has been silently degrading every
+structured call," and it was wrong.
 
-**Q: Is there a deeper limitation in using `gemma4:12b` as *both* the
-agent-under-test and the judge model?**
-A: Yes, and it's worth naming honestly: best practice is to judge with a
-model at least as capable as (ideally stronger than) the model being
-evaluated, to avoid the model grading its own homework. This repo's local
-setup only has `gemma4:12b`-class models available, so the agent and
-judge here are effectively the same capability tier — a real constraint
-of local-only evaluation, not something this chapter's code can fix.
+**Q: Is there still a deeper limitation in using `gemma4:12b` as *both*
+the agent-under-test and the judge model?**
+A: Yes, and it's still worth naming honestly, even though the schema fix
+resolved the observed failure: best practice is to judge with a model at
+least as capable as (ideally stronger than) the model being evaluated, to
+avoid the model grading its own homework. This repo's local setup only
+has `gemma4:12b`-class models available, so the agent and judge here are
+effectively the same capability tier. One passing re-run with a perfect
+score doesn't retire this concern — it's a standing constraint of
+local-only evaluation, not something any one bug fix resolves.
 
 **Q: Where did chapter 7's actual source content come from, given the
 article's own page didn't yield the chapter 7 text?**
