@@ -18,6 +18,7 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import uuid
 
 import uvicorn
 from a2a.server.agent_execution import AgentExecutor, RequestContext
@@ -162,10 +163,7 @@ class StudyBuddyExecutor(AgentExecutor):
     """Bridges the A2A protocol to CrewAI execution."""
 
     async def execute(self, context: RequestContext, event_queue: EventQueue) -> None:
-        request_text = ""
-        for part in context.current_request.params.message.parts:
-            if isinstance(part, TextPart):
-                request_text += part.text
+        request_text = context.get_user_input()
 
         try:
             request_data = json.loads(request_text)
@@ -209,7 +207,11 @@ class StudyBuddyExecutor(AgentExecutor):
             }
 
         await event_queue.enqueue_event(
-            Message(role="agent", parts=[TextPart(text=json.dumps(result, indent=2))])
+            Message(
+                role="agent",
+                message_id=str(uuid.uuid4()),
+                parts=[TextPart(text=json.dumps(result, indent=2))],
+            )
         )
 
     async def cancel(self, context: RequestContext, event_queue: EventQueue) -> None:

@@ -31,27 +31,41 @@ def send_task(
     payload = {
         "jsonrpc": "2.0",
         "id": 1,
-        "method": "tasks/send",
+        "method": "message/send",
         "params": {
-            "id": task_id or str(uuid.uuid4()),
             "message": {
                 "role": "user",
-                "parts": [{"type": "text", "text": message_text}],
+                "messageId": task_id or str(uuid.uuid4()),
+                "kind": "message",
+                "parts": [{"kind": "text", "text": message_text}],
             },
         },
     }
 
-    url = f"{base_url.rstrip('/')}/tasks/send"
+    url = base_url.rstrip("/") + "/"
     try:
         response = httpx.post(url, json=payload, timeout=timeout)
         response.raise_for_status()
         data = response.json()
 
+        if "error" in data:
+            return {"error": f"A2A task failed: {data['error']}"}
+
         result = data.get("result", {})
+
+        # Agent responded directly with a Message (result.kind == "message").
+        for part in result.get("parts", []):
+            if part.get("kind") == "text":
+                try:
+                    return json.loads(part["text"])
+                except json.JSONDecodeError:
+                    return {"text": part["text"]}
+
+        # Agent responded with a Task (result.status.message.parts / artifacts).
         artifacts = result.get("artifacts", [])
         if artifacts:
             for part in artifacts[0].get("parts", []):
-                if part.get("type") == "text":
+                if part.get("kind") == "text":
                     try:
                         return json.loads(part["text"])
                     except json.JSONDecodeError:
@@ -61,7 +75,7 @@ def send_task(
         if status:
             msg = status.get("message", {})
             for part in msg.get("parts", []):
-                if part.get("type") == "text":
+                if part.get("kind") == "text":
                     try:
                         return json.loads(part["text"])
                     except json.JSONDecodeError:

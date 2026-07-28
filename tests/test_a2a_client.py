@@ -40,8 +40,14 @@ class TestSendTask:
 
         quiz_result = {"status": "questions_ready", "topic": "Test Topic", "questions": []}
         mock_response = MagicMock()
+        # The a2a-sdk's message/send returns the agent's reply as a top-level
+        # Message object (kind="message"), not wrapped in Task artifacts.
         mock_response.json.return_value = {
-            "result": {"artifacts": [{"parts": [{"type": "text", "text": json.dumps(quiz_result)}]}]}
+            "result": {
+                "kind": "message",
+                "role": "agent",
+                "parts": [{"kind": "text", "text": json.dumps(quiz_result)}],
+            }
         }
         mock_response.raise_for_status = MagicMock()
         mock_post.return_value = mock_response
