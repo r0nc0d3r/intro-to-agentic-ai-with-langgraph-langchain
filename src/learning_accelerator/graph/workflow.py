@@ -8,6 +8,10 @@ from langgraph.graph import END, START, StateGraph
 
 from learning_accelerator.agents.curriculum_planner import curriculum_planner_node
 from learning_accelerator.agents.explainer import explainer_node
+from learning_accelerator.agents.human_approval import (
+    human_approval_node,
+    route_after_approval,
+)
 from learning_accelerator.agents.progress_coach import (
     progress_coach_node,
     route_after_coach,
@@ -35,9 +39,15 @@ def build_graph(db_path: str = DEFAULT_DB_PATH):
     builder.add_node("explainer", explainer_node)
     builder.add_node("quiz_generator", quiz_generator_node)
     builder.add_node("progress_coach", progress_coach_node)
+    builder.add_node("human_approval", human_approval_node)
 
     builder.add_edge(START, "curriculum_planner")
-    builder.add_edge("curriculum_planner", "explainer")
+    builder.add_edge("curriculum_planner", "human_approval")
+    builder.add_conditional_edges(
+        "human_approval",
+        route_after_approval,
+        {"explainer": "explainer", "curriculum_planner": "curriculum_planner"},
+    )
     builder.add_edge("explainer", "quiz_generator")
     builder.add_edge("quiz_generator", "progress_coach")
     builder.add_conditional_edges(
