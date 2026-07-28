@@ -61,3 +61,14 @@ than the full multi-topic loop?**
 A: One real LLM call is enough to prove a callback fires. The graph
 naturally stops at the existing `human_approval` interrupt right after,
 which is a fast, convenient stopping point for this specific check.
+
+**Q: Tracing is "on" but no traces show up anywhere — what are the most
+likely causes?**
+A: In rough order of likelihood: (1) `LANGFUSE_BASE_URL`/`LANGFUSE_HOST`
+pointing at the wrong instance (e.g. a leftover localhost override when
+using Langfuse Cloud), (2) `.env` never actually being loaded (check that
+something in the app calls `load_dotenv()` — it's easy to set the right
+values in `.env` and have them silently not apply), (3) rejected/invalid
+API keys. None of these raise a Python exception — `langfuse_enabled()`
+only checks that the keys are *present*, not that they're *valid* or
+pointed at the *right host*.

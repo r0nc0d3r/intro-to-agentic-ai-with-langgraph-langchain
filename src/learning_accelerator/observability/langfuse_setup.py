@@ -14,7 +14,7 @@ def langfuse_enabled() -> bool:
 def get_langfuse_handler() -> CallbackHandler | None:
     if not langfuse_enabled():
         return None
-    return CallbackHandler()
+    return CallbackHandler(public_key=os.environ["LANGFUSE_PUBLIC_KEY"])
 
 
 def get_langfuse_config(session_id: str) -> dict:

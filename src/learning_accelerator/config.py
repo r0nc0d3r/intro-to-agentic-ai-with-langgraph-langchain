@@ -2,7 +2,10 @@ from __future__ import annotations
 
 import os
 
+from dotenv import load_dotenv
 from langchain_core.language_models.chat_models import BaseChatModel
+
+load_dotenv()
 
 
 def get_chat_model(temperature: float = 0.1) -> BaseChatModel:
