@@ -341,7 +341,7 @@ def screen_quizzing() -> None:
     topic_idx = st.session_state.current_topic_index
 
     st.progress(topic_idx / total_topics, text=f"Topic {topic_idx + 1} of {total_topics}")
-    if total_q > 0:
+    if total_q > 0 and q_idx < total_q:
         st.progress(q_idx / total_q, text=f"Question {q_idx + 1} of {total_q}")
 
     st.title(f"🧠 Quiz: {st.session_state.topic_title}")
