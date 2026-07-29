@@ -39,6 +39,10 @@ from learning_accelerator.graph.state import GradedAnswer, QuizResult, initial_s
 from learning_accelerator.graph.workflow import build_graph
 from learning_accelerator.observability.langfuse_setup import flush_langfuse, get_langfuse_config
 
+# Separate checkpoint file from main.py's (.data/checkpoints.sqlite) — this
+# graph is compiled with interrupt_before=["quiz_generator"], a different
+# compiled graph than main.py's, so a session started in one interface
+# can't currently be resumed in the other.
 ui_graph = build_graph(
     db_path=".data/checkpoints_ui.sqlite",
     interrupt_before=["quiz_generator"],
@@ -144,6 +148,10 @@ def approve_roadmap(approved: bool) -> None:
         go_to("ROADMAP_APPROVAL")
         return
 
+    if result.get("error"):
+        st.session_state.error = result["error"]
+        return
+
     messages = result.get("messages", [])
     st.session_state.explanation = extract_explanation(messages)
 
@@ -190,6 +198,10 @@ def advance_after_quiz(quiz_result: QuizResult) -> None:
 
     with st.spinner("Getting coaching feedback..."):
         result = ui_graph.invoke(None, config=config)
+
+    if result.get("error"):
+        st.session_state.error = result["error"]
+        return
 
     # This one invoke runs progress_coach (always) and then explainer (if
     # there's a next topic) with no interrupt boundary between them, so
