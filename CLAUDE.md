@@ -114,3 +114,19 @@ any future agentic-AI project, not just this one:
   model) reliably caught real bugs** that straight implementation would
   have shipped. Worth defaulting to for future multi-task work in this
   repo, not just as a one-off choice.
+- **Test Streamlit UI screens with `streamlit.testing.v1.AppTest`, not
+  manual browser runs, for anything that doesn't need a real LLM.**
+  `AppTest.from_file(path)` execs the actual script headlessly;
+  `monkeypatch.setattr` the function that builds your LangGraph graph
+  (e.g. `learning_accelerator.graph.workflow.build_graph`) to return a
+  `MagicMock`, then set `.invoke`/`.update_state`/`.get_state` per
+  scenario — this isolates screen-routing/session-state logic from the
+  LLM/graph layers, which should already have their own tests. Two
+  gotchas: `at.button` can carry a stale entry from a previous screen
+  after a rerun, so always select by unique label substring and assert
+  exactly one match rather than indexing (`at.button[0]`/`[-1]`); and
+  `st.progress` has no dedicated `AppTest` accessor — read it via
+  `at.get("progress")` and `.proto.text`. Presetting
+  `at.session_state[...]` before the first `.run()` lets you jump
+  straight to a screen without driving the whole flow. See
+  `tests/test_streamlit_app.py`.
