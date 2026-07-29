@@ -62,3 +62,12 @@ def test_get_langfuse_config_includes_callbacks_when_enabled(monkeypatch):
     assert config["configurable"]["thread_id"] == "session-456"
     assert len(config["callbacks"]) == 1
     assert config["metadata"] == {"langfuse_session_id": "session-456"}
+
+
+def test_flush_langfuse_is_noop_when_disabled(monkeypatch):
+    monkeypatch.delenv("LANGFUSE_PUBLIC_KEY", raising=False)
+    monkeypatch.delenv("LANGFUSE_SECRET_KEY", raising=False)
+
+    from learning_accelerator.observability.langfuse_setup import flush_langfuse
+
+    flush_langfuse()  # must not raise

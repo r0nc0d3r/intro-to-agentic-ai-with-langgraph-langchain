@@ -61,8 +61,30 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-Copy `.env.example` to `.env` (once added) and fill in your API keys before
-running any examples.
+Copy `.env.example` to `.env` and fill in your provider/API keys before
+running any examples (Ollama needs none by default).
+
+## Running the System
+
+The Learning Accelerator is a four-agent LangGraph system (Curriculum
+Planner, Explainer, Quiz Generator, Progress Coach) with two real entry
+points:
+
+```bash
+# Terminal interface
+uv run python main.py "Learn LangGraph checkpointing from scratch"
+
+# Resume an interrupted session by its ID
+uv run python main.py --resume <session-id>
+
+# Web interface (Streamlit)
+uv run streamlit run streamlit_app.py
+```
+
+For the full build-out chapter by chapter — architecture rationale,
+MCP/A2A integration, observability, evaluation, and more — see
+[`docs/architecture.md`](docs/architecture.md) and the flashcard-style
+notes in [`learning/`](learning/) (`chapter1.md` through `chapter9.md`).
 
 ## License
 

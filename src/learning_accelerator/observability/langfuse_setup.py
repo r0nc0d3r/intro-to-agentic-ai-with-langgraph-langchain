@@ -26,3 +26,21 @@ def get_langfuse_config(session_id: str) -> dict:
         config["metadata"] = {"langfuse_session_id": session_id}
 
     return config
+
+
+def flush_langfuse() -> None:
+    """Flush any pending Langfuse events before process exit.
+
+    Langfuse batches/exports spans asynchronously; call this at the end
+    of a script so all traces are actually sent before the process ends.
+    No-op if Langfuse isn't configured.
+    """
+    if not langfuse_enabled():
+        return
+
+    try:
+        from langfuse import get_client
+
+        get_client().flush()
+    except Exception:
+        pass  # best-effort flush, don't crash on exit

@@ -2,6 +2,8 @@ import pytest
 from pydantic import ValidationError
 
 from learning_accelerator.graph.state import (
+    GradedAnswer,
+    QuizResult,
     StudyRoadmap,
     Topic,
     get_current_topic,
@@ -92,3 +94,29 @@ def test_session_is_complete_true_when_index_exceeds_topics():
     state["current_topic_index"] = 1
 
     assert session_is_complete(state) is True
+
+
+def test_graded_answer_defaults():
+    answer = GradedAnswer(
+        question="What is a checkpoint?",
+        expected_answer="A saved state snapshot.",
+        user_answer="A save file.",
+        correct=False,
+        feedback="Close, but be more precise.",
+        score=0.6,
+    )
+    assert answer.score == 0.6
+
+
+def test_quiz_result_questions_defaults_to_empty_list():
+    result = QuizResult(topic="LangGraph", score=0.8, passed=True)
+    assert result.questions == []
+
+
+def test_quiz_result_accepts_graded_answers():
+    answer = GradedAnswer(
+        question="Q", expected_answer="E", user_answer="U",
+        correct=True, feedback="Good", score=1.0,
+    )
+    result = QuizResult(topic="LangGraph", score=1.0, passed=True, questions=[answer])
+    assert result.questions[0].score == 1.0
