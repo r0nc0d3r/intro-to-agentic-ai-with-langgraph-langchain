@@ -144,6 +144,38 @@ def test_missing_roadmap_on_approval_screen_shows_error_and_allows_start_over(mo
     assert at.session_state["screen"] == "GOAL_INPUT"
 
 
+# --- Explaining screen -------------------------------------------------------
+
+
+def test_explaining_screen_shows_warning_when_no_explanation_available(monkeypatch):
+    roadmap = _roadmap(1)
+    mock_graph = MagicMock()
+    mock_graph.invoke.side_effect = [
+        {"__interrupt__": [types.SimpleNamespace(value={"roadmap": roadmap})]},
+        {
+            "messages": [],
+            "roadmap": roadmap,
+            "current_topic_index": 0,
+        },
+    ]
+    _mock_build_graph(monkeypatch, mock_graph)
+    monkeypatch.setattr(
+        "learning_accelerator.agents.quiz_generator.generate_questions",
+        lambda *a, **k: _questions(),
+    )
+
+    at = AppTest.from_file(APP_PATH)
+    at.run()
+    _submit_goal(at, roadmap.goal)
+    _click(at, "Yes, start studying")
+
+    assert not at.exception
+    assert at.session_state["screen"] == "EXPLAINING"
+    assert at.session_state["explanation"] == ""
+    assert any("No explanation available" in w.value for w in at.warning)
+    assert not any("### Explanation" in m.value for m in at.markdown)
+
+
 # --- Quiz question/answer/grade cycle --------------------------------------
 
 
@@ -329,6 +361,127 @@ def test_session_complete_screen_shows_overall_average_and_per_topic_results(mon
     assert not at.exception
     assert at.session_state["screen"] == "GOAL_INPUT"
     assert at.session_state["session_id"] is None
+
+
+def test_session_complete_screen_shows_topics_to_revisit_when_weak_areas_present(monkeypatch):
+    roadmap = _roadmap(1)
+    mock_graph = MagicMock()
+    mock_graph.invoke.side_effect = [
+        {"__interrupt__": [types.SimpleNamespace(value={"roadmap": roadmap})]},
+        {
+            "messages": [AIMessage(content="explanation")],
+            "roadmap": roadmap,
+            "current_topic_index": 0,
+        },
+        {
+            "messages": [AIMessage(content="Keep practicing!")],
+            "quiz_results": [QuizResult(topic="Topic 1", score=0.5, passed=True, weak_areas=["closures"])],
+            "weak_areas": ["closures"],
+            "current_topic_index": 1,
+            "roadmap": roadmap,
+            "error": None,
+        },
+    ]
+    mock_graph.get_state.return_value = types.SimpleNamespace(values={"messages": []})
+    _mock_build_graph(monkeypatch, mock_graph)
+    monkeypatch.setattr(
+        "learning_accelerator.agents.quiz_generator.grade_answer",
+        lambda *a, **k: GradeResult(correct=True, score=0.5, feedback="Partial", missing_concept="closures"),
+    )
+
+    at = AppTest.from_file(APP_PATH)
+    _advance_to_quizzing(at, monkeypatch, roadmap, mock_graph)
+    for _ in range(3):
+        _answer_current_question(at)
+    _click(at, "Continue")
+
+    assert not at.exception
+    assert at.session_state["screen"] == "COMPLETE"
+    assert any("Topics to Revisit" in m.value for m in at.markdown)
+    assert any("closures" in m.value for m in at.markdown)
+
+
+# --- Graph error-result handling --------------------------------------------
+
+
+def test_start_session_error_result_shows_error_and_stays_on_goal_input(monkeypatch):
+    mock_graph = MagicMock()
+    mock_graph.invoke.return_value = {"error": "planner boom"}
+    _mock_build_graph(monkeypatch, mock_graph)
+
+    at = AppTest.from_file(APP_PATH)
+    at.run()
+    _submit_goal(at, "Learn X")
+
+    assert not at.exception
+    assert at.session_state["screen"] == "GOAL_INPUT"
+    assert at.session_state["error"] == "planner boom"
+    assert any("planner boom" in e.value for e in at.error)
+
+
+def test_start_session_without_interrupt_or_error_shows_unexpected_error(monkeypatch):
+    mock_graph = MagicMock()
+    mock_graph.invoke.return_value = {}
+    _mock_build_graph(monkeypatch, mock_graph)
+
+    at = AppTest.from_file(APP_PATH)
+    at.run()
+    _submit_goal(at, "Learn X")
+
+    assert not at.exception
+    assert at.session_state["screen"] == "GOAL_INPUT"
+    assert at.session_state["error"] == "Unexpected: no interrupt after planner."
+
+
+def test_approve_roadmap_error_result_shows_error_banner_on_approval_screen(monkeypatch):
+    roadmap = _roadmap(1)
+    mock_graph = MagicMock()
+    mock_graph.invoke.side_effect = [
+        {"__interrupt__": [types.SimpleNamespace(value={"roadmap": roadmap})]},
+        {"error": "approve boom"},
+    ]
+    _mock_build_graph(monkeypatch, mock_graph)
+
+    at = AppTest.from_file(APP_PATH)
+    at.run()
+    _submit_goal(at, roadmap.goal)
+    _click(at, "Yes, start studying")
+
+    assert not at.exception
+    assert at.session_state["screen"] == "ROADMAP_APPROVAL"
+    assert at.session_state["error"] == "approve boom"
+    assert any("approve boom" in e.value for e in at.error)
+
+
+def test_advance_after_quiz_error_result_shows_error_banner_on_quizzing_screen(monkeypatch):
+    roadmap = _roadmap(1)
+    mock_graph = MagicMock()
+    mock_graph.invoke.side_effect = [
+        {"__interrupt__": [types.SimpleNamespace(value={"roadmap": roadmap})]},
+        {
+            "messages": [AIMessage(content="explanation")],
+            "roadmap": roadmap,
+            "current_topic_index": 0,
+        },
+        {"error": "advance boom"},
+    ]
+    mock_graph.get_state.return_value = types.SimpleNamespace(values={"messages": []})
+    _mock_build_graph(monkeypatch, mock_graph)
+    monkeypatch.setattr(
+        "learning_accelerator.agents.quiz_generator.grade_answer",
+        lambda *a, **k: GradeResult(correct=True, score=1.0, feedback="Nice", missing_concept=""),
+    )
+
+    at = AppTest.from_file(APP_PATH)
+    _advance_to_quizzing(at, monkeypatch, roadmap, mock_graph)
+    for _ in range(3):
+        _answer_current_question(at)
+    _click(at, "Continue")
+
+    assert not at.exception
+    assert at.session_state["screen"] == "QUIZZING"
+    assert at.session_state["error"] == "advance boom"
+    assert any("advance boom" in e.value for e in at.error)
 
 
 # --- Error display -----------------------------------------------------------
