@@ -14,6 +14,7 @@ import types
 from pathlib import Path
 from unittest.mock import MagicMock
 
+import streamlit as st
 from langchain_core.messages import AIMessage
 from streamlit.testing.v1 import AppTest
 
@@ -24,6 +25,7 @@ APP_PATH = str(Path(__file__).resolve().parent.parent / "streamlit_app.py")
 
 
 def _mock_build_graph(monkeypatch, mock_graph: MagicMock) -> None:
+    st.cache_resource.clear()
     monkeypatch.setattr(
         "learning_accelerator.graph.workflow.build_graph",
         lambda **kwargs: mock_graph,
