@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from functools import lru_cache
 
 from dotenv import load_dotenv
 from langchain_core.language_models.chat_models import BaseChatModel
@@ -8,6 +9,7 @@ from langchain_core.language_models.chat_models import BaseChatModel
 load_dotenv()
 
 
+@lru_cache(maxsize=None)
 def get_chat_model(temperature: float = 0.1) -> BaseChatModel:
     provider = os.environ.get("LLM_PROVIDER", "ollama").lower()
 

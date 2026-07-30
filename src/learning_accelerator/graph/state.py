@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Annotated, Optional
 
-from langchain_core.messages import BaseMessage
+from langchain_core.messages import AIMessage, BaseMessage
 from langgraph.graph.message import add_messages
 from pydantic import BaseModel, Field
 from typing_extensions import TypedDict
@@ -81,6 +81,14 @@ def get_current_topic(state: AgentState) -> Topic:
     Only valid while session_is_complete(state) is False.
     """
     return state["roadmap"].topics[state["current_topic_index"]]
+
+
+def get_last_explanation(state: AgentState) -> str:
+    """Return the most recent non-tool-call AIMessage's content, or ""."""
+    for msg in reversed(state["messages"]):
+        if isinstance(msg, AIMessage) and msg.content and not getattr(msg, "tool_calls", None):
+            return msg.content
+    return ""
 
 
 def session_is_complete(state: AgentState) -> bool:

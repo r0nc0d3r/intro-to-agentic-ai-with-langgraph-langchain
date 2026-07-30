@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import Callable
 
-from langchain_core.messages import AIMessage
 from pydantic import BaseModel
 
 from learning_accelerator.config import get_chat_model
@@ -11,6 +10,7 @@ from learning_accelerator.graph.state import (
     AgentState,
     QuizResult,
     get_current_topic,
+    get_last_explanation,
 )
 
 GENERATION_PROMPT = """You are a quiz designer for a student learning \
@@ -125,11 +125,7 @@ def run_quiz(
 def quiz_generator_node(state: AgentState) -> dict:
     topic = get_current_topic(state)
 
-    explanation = ""
-    for msg in reversed(state["messages"]):
-        if isinstance(msg, AIMessage) and msg.content and not getattr(msg, "tool_calls", None):
-            explanation = msg.content
-            break
+    explanation = get_last_explanation(state)
 
     quiz_result = run_quiz(topic.title, explanation)
 

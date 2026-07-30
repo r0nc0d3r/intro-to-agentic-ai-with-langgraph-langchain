@@ -1,4 +1,5 @@
 import pytest
+from langchain_core.messages import AIMessage, HumanMessage
 from pydantic import ValidationError
 
 from learning_accelerator.graph.state import (
@@ -7,6 +8,7 @@ from learning_accelerator.graph.state import (
     StudyRoadmap,
     Topic,
     get_current_topic,
+    get_last_explanation,
     initial_state,
     session_is_complete,
 )
@@ -120,3 +122,30 @@ def test_quiz_result_accepts_graded_answers():
     )
     result = QuizResult(topic="LangGraph", score=1.0, passed=True, questions=[answer])
     assert result.questions[0].score == 1.0
+
+
+def test_get_last_explanation_returns_empty_when_no_messages():
+    state = initial_state(goal="g", session_id="s")
+    assert get_last_explanation(state) == ""
+
+
+def test_get_last_explanation_skips_tool_call_messages():
+    state = initial_state(goal="g", session_id="s")
+    state["messages"] = [
+        AIMessage(content="explanation text"),
+        AIMessage(
+            content="",
+            tool_calls=[{"name": "tool_read_file", "args": {}, "id": "1"}],
+        ),
+    ]
+    assert get_last_explanation(state) == "explanation text"
+
+
+def test_get_last_explanation_returns_most_recent():
+    state = initial_state(goal="g", session_id="s")
+    state["messages"] = [
+        AIMessage(content="first explanation"),
+        HumanMessage(content="ignored, not an AIMessage"),
+        AIMessage(content="second explanation"),
+    ]
+    assert get_last_explanation(state) == "second explanation"

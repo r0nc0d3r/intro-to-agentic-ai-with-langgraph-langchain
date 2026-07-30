@@ -34,3 +34,17 @@ def test_get_chat_model_unknown_provider_raises(monkeypatch):
     monkeypatch.setenv("LLM_PROVIDER", "bogus")
     with pytest.raises(ValueError, match="Unknown LLM_PROVIDER"):
         get_chat_model()
+
+
+def test_get_chat_model_caches_same_temperature(monkeypatch):
+    monkeypatch.delenv("LLM_PROVIDER", raising=False)
+    model1 = get_chat_model(temperature=0.2)
+    model2 = get_chat_model(temperature=0.2)
+    assert model1 is model2
+
+
+def test_get_chat_model_different_temperature_not_cached(monkeypatch):
+    monkeypatch.delenv("LLM_PROVIDER", raising=False)
+    model1 = get_chat_model(temperature=0.2)
+    model2 = get_chat_model(temperature=0.3)
+    assert model1 is not model2
