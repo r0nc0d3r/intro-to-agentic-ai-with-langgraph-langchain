@@ -43,10 +43,15 @@ from learning_accelerator.observability.langfuse_setup import flush_langfuse, ge
 # graph is compiled with interrupt_before=["quiz_generator"], a different
 # compiled graph than main.py's, so a session started in one interface
 # can't currently be resumed in the other.
-ui_graph = build_graph(
-    db_path=".data/checkpoints_ui.sqlite",
-    interrupt_before=["quiz_generator"],
-)
+@st.cache_resource
+def get_ui_graph():
+    return build_graph(
+        db_path=".data/checkpoints_ui.sqlite",
+        interrupt_before=["quiz_generator"],
+    )
+
+
+ui_graph = get_ui_graph()
 
 st.set_page_config(page_title="Learning Accelerator", page_icon="🎓", layout="centered")
 
