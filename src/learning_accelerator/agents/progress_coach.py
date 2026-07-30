@@ -7,7 +7,12 @@ from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from pydantic import BaseModel
 
 from learning_accelerator.config import get_chat_model
-from learning_accelerator.graph.state import AgentState, PASS_THRESHOLD, session_is_complete
+from learning_accelerator.graph.state import (
+    AgentState,
+    PASS_THRESHOLD,
+    get_last_explanation,
+    session_is_complete,
+)
 from learning_accelerator.mcp_servers.memory_server import memory_set
 
 COACHING_PROMPT = """You are a warm, encouraging study coach. Given a topic, \
@@ -150,11 +155,7 @@ def progress_coach_node(state: AgentState) -> dict:
     )
 
     if latest.score < PASS_THRESHOLD and latest.weak_areas:
-        explanation = ""
-        for msg in reversed(state["messages"]):
-            if isinstance(msg, AIMessage) and msg.content and not getattr(msg, "tool_calls", None):
-                explanation = msg.content
-                break
+        explanation = get_last_explanation(state)
 
         assistance = try_study_buddy_assistance(
             topic=latest.topic,
