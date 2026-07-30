@@ -16,7 +16,7 @@ import uuid
 from langgraph.types import Command
 
 from learning_accelerator.graph.state import QuizResult, StudyRoadmap, initial_state
-from learning_accelerator.graph.workflow import graph
+from learning_accelerator.graph.workflow import get_default_graph
 from learning_accelerator.observability.langfuse_setup import flush_langfuse, get_langfuse_config
 
 
@@ -68,7 +68,7 @@ def run_session(goal: str, session_id: str | None = None) -> None:
     state = None if is_resume else initial_state(goal, session_id)
 
     try:
-        result = graph.invoke(state, config=config)
+        result = get_default_graph().invoke(state, config=config)
     except Exception as e:
         if is_resume:
             print(f"\n[ERROR] Could not resume session '{session_id}': {e}")
@@ -95,7 +95,7 @@ def run_session(goal: str, session_id: str | None = None) -> None:
         print(f"\n{interrupt_payload.get('prompt', 'Continue?')}")
         user_input = input("> ").strip()
 
-        result = graph.invoke(Command(resume=user_input), config=config)
+        result = get_default_graph().invoke(Command(resume=user_input), config=config)
 
     if result.get("error"):
         print(f"\n[ERROR] {result['error']}")

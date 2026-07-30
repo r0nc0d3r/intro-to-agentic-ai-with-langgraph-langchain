@@ -10,7 +10,7 @@ from __future__ import annotations
 import uuid
 
 from learning_accelerator.graph.state import initial_state
-from learning_accelerator.graph.workflow import graph
+from learning_accelerator.graph.workflow import get_default_graph
 
 
 def main() -> None:
@@ -18,7 +18,7 @@ def main() -> None:
     state = initial_state(goal="Learn the basics of LangGraph", session_id=session_id)
 
     config = {"configurable": {"thread_id": session_id}}
-    result = graph.invoke(state, config=config)
+    result = get_default_graph().invoke(state, config=config)
 
     print(f"Session: {session_id}")
     print(f"Roadmap topics: {[t.title for t in result['roadmap'].topics]}")

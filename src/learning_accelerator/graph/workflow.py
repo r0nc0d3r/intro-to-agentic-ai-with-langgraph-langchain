@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import sqlite3
+from functools import lru_cache
 
 from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.graph import END, START, StateGraph
@@ -65,4 +66,6 @@ def build_graph(
     )
 
 
-graph = build_graph()
+@lru_cache(maxsize=1)
+def get_default_graph():
+    return build_graph()
