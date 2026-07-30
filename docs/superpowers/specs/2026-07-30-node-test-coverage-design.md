@@ -53,7 +53,11 @@ not uniformly at `get_chat_model`:
   logic.
 - **`progress_coach_node`** mocks `get_coaching_message` and
   `try_study_buddy_assistance` directly, for the same reason — both
-  already have dedicated tests.
+  already have dedicated tests. `progress_coach_node`'s call to
+  `memory_set` is NOT mocked — it writes for real into the in-memory
+  `memory_server._store` under the test's session ID, which is harmless
+  (isolated per-session, nothing reads it back in this suite) but is a
+  real, deliberate side effect worth knowing about.
 - **`explainer_node`'s tool calls are not mocked.** `tool_list_files`,
   `tool_read_file`, etc. execute for real against the committed
   `study_materials/sample_notes/` files — a local disk read, no network,

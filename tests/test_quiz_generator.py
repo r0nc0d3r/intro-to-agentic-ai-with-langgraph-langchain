@@ -23,6 +23,8 @@ def _make_state_with_explanation(weak_areas=None):
 
 def test_quiz_generator_node_appends_result_and_merges_weak_areas(monkeypatch):
     state = _make_state_with_explanation(weak_areas=["variables"])
+    prior_result = QuizResult(topic="Setup", score=1.0, passed=True, weak_areas=[])
+    state["quiz_results"] = [prior_result]
 
     quiz_result = QuizResult(
         topic="Intro", score=0.8, passed=True, weak_areas=["recursion"]
@@ -32,7 +34,7 @@ def test_quiz_generator_node_appends_result_and_merges_weak_areas(monkeypatch):
 
     result = quiz_generator_node(state)
 
-    assert result["quiz_results"] == [quiz_result]
+    assert result["quiz_results"] == [prior_result, quiz_result]
     assert sorted(result["weak_areas"]) == sorted(["variables", "recursion"])
     assert result["error"] is None
     mock_run_quiz.assert_called_once_with("Intro", "Here is the explanation of Intro.")
