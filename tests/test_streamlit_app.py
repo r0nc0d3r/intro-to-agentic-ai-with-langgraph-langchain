@@ -25,6 +25,8 @@ APP_PATH = str(Path(__file__).resolve().parent.parent / "streamlit_app.py")
 
 
 def _mock_build_graph(monkeypatch, mock_graph: MagicMock) -> None:
+    # streamlit_app.py caches its graph process-wide; clear it so each
+    # test gets its own mock instead of a stale one from an earlier test.
     st.cache_resource.clear()
     monkeypatch.setattr(
         "learning_accelerator.graph.workflow.build_graph",
